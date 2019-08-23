@@ -863,7 +863,7 @@ characters."
 (defun p4-buffer-file-name (&optional buffer)
   "Return name of file BUFFER is visiting, or NIL if none,
 respecting the `p4-follow-symlinks' setting."
-  (let ((f (buffer-file-name buffer)))
+  (let ((f (file-local-name (buffer-file-name buffer))))
     (when f (p4-follow-link-name f))))
 
 (defun p4-process-output (cmd &rest args)
@@ -913,9 +913,10 @@ The program to be executed is taken from `p4-executable'; INFILE,
 DESTINATION, and DISPLAY are to be interpreted as for
 `call-process'.  The argument list ARGS is modified using
 `p4-modify-args-function'."
-    (apply #'call-process (p4-executable) infile destination display
+    (apply #'process-file (p4-executable) infile destination display
            (funcall p4-modify-args-function args))))
 
+;;; need a variant of call-process-region wrapped around process-file
 (defun p4-call-process-region (start end &optional delete buffer display &rest args)
   "Send text from START to END to a synchronous Perforce process.
 The program to be executed is taken from `p4-executable'; START,
@@ -931,7 +932,7 @@ The program to be executed is taken from `p4-executable'; NAME
 and BUFFER are to be interpreted as for `start-process'.  The
 argument list PROGRAM-ARGS is modified using
 `p4-modify-args-function'."
-  (apply #'start-process name buffer (p4-executable)
+  (apply #'start-file-process name buffer (p4-executable)
          (funcall p4-modify-args-function program-args)))
 
 (defun p4-compilation-start (args &optional mode name-function highlight-regexp)
@@ -1462,7 +1463,7 @@ set in this buffer, `p4-mode' will be set appropriately, and if
 If optional argument FORCE is non-NIL, reset the update timeout
 for the current Perforce settings."
   (let ((b (current-buffer)))
-    (when (and p4-executable p4-do-find-file buffer-file-name
+    (when (and p4-executable p4-do-find-file (p4-buffer-file-name)
                (not p4-default-directory)
                (file-accessible-directory-p default-directory))
       (p4-with-set-output
